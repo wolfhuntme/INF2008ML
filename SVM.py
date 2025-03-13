@@ -40,9 +40,8 @@ def load_images_and_extract_features(folder, label):
     return np.array(features), np.array(labels)
 
 # ======== Paths to your datasets ========
-genuine_path = r"C:\Users\jie_f\Documents\GitHub\INF2008ML\signatures_cedar\full_org"  # Update this path
-forged_path  = r"C:\Users\jie_f\Documents\GitHub\INF2008ML\signatures_cedar\full_forg"  # Update this path
-
+genuine_path = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_org"
+forged_path  = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_forg"
 # ======== Load and process data ========
 X_genuine, y_genuine = load_images_and_extract_features(genuine_path, label=1)
 X_forged,  y_forged  = load_images_and_extract_features(forged_path, label=0)
@@ -141,5 +140,5 @@ def compare_hog(genuine_image_path, forged_image_path):
     plt.show()
 
 # Example usage (update the paths accordingly)
-compare_hog(r"C:\Users\jie_f\Documents\GitHub\Machine-Learning\signatures_cedar\full_org\original_36_7.png", 
-            r"C:\Users\jie_f\Documents\GitHub\Machine-Learning\signatures_cedar\full_forg\forgeries_36_7.png")
+compare_hog(r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_41_1.png", 
+            r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_41_1.png")
