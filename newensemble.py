@@ -74,7 +74,7 @@ def main():
     models = [knn, rf, svm, logreg, adaboost]
     
     # Update the test image path to the signature you wish to classify
-    test_image_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_43_18.png"
+    test_image_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_47_22.png"
     
     classification, ensemble_prob, individual_probs = ensemble_classify_signature(test_image_path, models, threshold=THRESHOLD)
     print("Ensemble Classification:", classification)
