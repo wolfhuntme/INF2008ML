@@ -2,11 +2,11 @@ import os
 import numpy as np
 import cv2
 from skimage.feature import hog
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report, recall_score, make_scorer
 from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
-import joblib  # <-- Added for model persistence
+import joblib  # For model persistence
 
 # ======== PARAMETERS ========
 orientations = 9
@@ -34,8 +34,8 @@ def load_images_and_extract_features(folder, label):
     return np.array(features), np.array(labels)
 
 # Update paths accordingly
-genuine_path = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_org"
-forged_path  = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_forg"
+genuine_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\full_org"
+forged_path  = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\full_forg"
 
 X_genuine, y_genuine = load_images_and_extract_features(genuine_path, label=1)
 X_forged,  y_forged  = load_images_and_extract_features(forged_path, label=0)
@@ -57,27 +57,45 @@ print("Training set size:", X_train.shape[0])
 print("Development set size:", X_dev.shape[0])
 print("Test set size:", X_test.shape[0])
 
-# ======== Train the KNN classifier ========
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_train, y_train)
+# ======== Custom Scorer for Forged Recall ========
+# We want to maximize recall for forged signatures (class 0)
+def forged_recall(y_true, y_pred):
+    return recall_score(y_true, y_pred, pos_label=0)
 
-# Evaluate on Dev Set
-y_dev_pred_knn = knn.predict(X_dev)
+forged_recall_scorer = make_scorer(forged_recall)
+
+# ======== GridSearchCV for KNN with Custom Scoring ========
+param_grid = {
+    'n_neighbors': [1, 3, 5, 7, 9, 11],
+    'weights': ['uniform', 'distance']
+}
+
+knn = KNeighborsClassifier()
+grid_search = GridSearchCV(knn, param_grid, cv=5, scoring=forged_recall_scorer, n_jobs=-1, verbose=1)
+grid_search.fit(X_train, y_train)
+
+print("Best parameters found:", grid_search.best_params_)
+
+# Use the best estimator from GridSearchCV
+best_knn = grid_search.best_estimator_
+
+# ======== Evaluate on Development Set ========
+y_dev_pred_knn = best_knn.predict(X_dev)
 dev_accuracy_knn = accuracy_score(y_dev, y_dev_pred_knn)
 print("Development Set Accuracy (KNN): {:.2f}%".format(dev_accuracy_knn * 100))
 print("\nDevelopment Classification Report (KNN):")
 print(classification_report(y_dev, y_dev_pred_knn))
 
-# Evaluate on Test Set
-y_test_pred_knn = knn.predict(X_test)
+# ======== Evaluate on Test Set ========
+y_test_pred_knn = best_knn.predict(X_test)
 test_accuracy_knn = accuracy_score(y_test, y_test_pred_knn)
 print("Test Set Accuracy (KNN): {:.2f}%".format(test_accuracy_knn * 100))
 print("\nTest Classification Report (KNN):")
 print(classification_report(y_test, y_test_pred_knn))
 
 # ======== SAVE MODEL ========
-joblib.dump(knn, "knn_model.pkl")
-print("KNN model saved as knn_model.pkl")
+joblib.dump(best_knn, "knn_model.pkl")
+print("Optimized KNN model saved as knn_model.pkl")
 
 # ======== Optional HOG Visualization ========
 def compare_hog(genuine_image_path, forged_image_path):
@@ -91,13 +109,13 @@ def compare_hog(genuine_image_path, forged_image_path):
     forged_img  = cv2.resize(forged_img, IMG_SIZE)
     
     genuine_features, genuine_hog_image = hog(genuine_img,
-                                              orientations=9,
+                                              orientations=orientations,
                                               pixels_per_cell=(8,8),
                                               cells_per_block=(2,2),
                                               block_norm='L2-Hys',
                                               visualize=True)
     forged_features, forged_hog_image = hog(forged_img,
-                                            orientations=9,
+                                            orientations=orientations,
                                             pixels_per_cell=(8,8),
                                             cells_per_block=(2,2),
                                             block_norm='L2-Hys',
@@ -119,5 +137,5 @@ def compare_hog(genuine_image_path, forged_image_path):
     plt.tight_layout()
     plt.show()
 
-compare_hog(r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_41_1.png", 
-            r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_41_1.png")
+compare_hog(r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_41_1.png", 
+            r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_41_1.png")

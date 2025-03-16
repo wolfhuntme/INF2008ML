@@ -57,11 +57,13 @@ def ensemble_classify_signature(image_path, models, threshold=THRESHOLD):
 # ======== MAIN SCRIPT ============
 def main():
     # Load the pre-trained models (update the paths as needed)
-    knn_model_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\knn_model.pkl"
-    rf_model_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\random_forest_model.pkl"
-    svm_model_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\svm_model.pkl"
-    logreg_model_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\logreg_model.pkl"
-    adaboost_model_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\adaboost_model.pkl"
+    knn_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\knn_model.pkl"
+    rf_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\random_forest_model.pkl"
+    svm_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\svm_model.pkl"
+    logreg_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\logreg_model.pkl"
+    adaboost_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\adaboost_model.pkl"
+    
+
     
     knn = joblib.load(knn_model_path)
     rf = joblib.load(rf_model_path)
@@ -72,7 +74,7 @@ def main():
     models = [knn, rf, svm, logreg, adaboost]
     
     # Update the test image path to the signature you wish to classify
-    test_image_path = r"C:\Users\aqmal\OneDrive\Desktop\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_41_14.png"
+    test_image_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg\forgeries_45_19.png"
     
     classification, ensemble_prob, individual_probs = ensemble_classify_signature(test_image_path, models, threshold=THRESHOLD)
     print("Ensemble Classification:", classification)
