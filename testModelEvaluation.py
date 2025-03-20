@@ -5,6 +5,8 @@ from skimage.feature import hog
 from sklearn.metrics import accuracy_score, classification_report
 import joblib
 from tabulate import tabulate
+import time
+from memory_profiler import memory_usage
 
 # ========== PARAMETERS ==========
 IMG_SIZE = (150, 150)
@@ -57,84 +59,61 @@ def load_unseen_data(genuine_folder, forged_folder):
     
     return np.array(X_unseen), np.array(y_unseen)
 
+def evaluate_model(model_file, model_name, X_data, y_true):
+    """Load a model, compute file size, inference time, memory overhead, and performance metrics."""
+    # File size in KB
+    file_size = os.path.getsize(model_file) / 1024  # in KB
+    
+    # Load the model
+    model = joblib.load(model_file)
+    print(f"{model_name} model loaded.")
+    
+    # Measure inference time
+    start_time = time.time()
+    predictions = model.predict(X_data)
+    inference_time = time.time() - start_time
+
+    # Measure memory overhead during prediction using memory_usage.
+    # This runs the prediction function separately.
+    mem_usage = memory_usage((model.predict, (X_data,)), interval=0.01)
+    memory_overhead = max(mem_usage) - min(mem_usage)
+    
+    # Compute performance metrics
+    accuracy = accuracy_score(y_true, predictions)
+    report = classification_report(y_true, predictions, output_dict=True)
+    precision = report['1']['precision']
+    recall = report['1']['recall']
+    f1 = report['1']['f1-score']
+    
+    return [model_name, round(file_size, 2), round(inference_time, 4),
+            round(memory_overhead, 4), round(accuracy, 6), round(precision, 6),
+            round(recall, 6), round(f1, 6)]
+
 # ========== PATHS FOR UNSEEN DATA ==========
 genuine_unseen_folder = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org"   # Update this path
 forged_unseen_folder  = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg"    # Update this path
 
-# Load unseen data and extract features
-X_unseen, y_unseen = load_unseen_data(genuine_unseen_folder, forged_unseen_folder)
-print("Unseen data samples:", X_unseen.shape)
+if __name__ == '__main__':
+    # Load unseen data and extract features
+    X_unseen, y_unseen = load_unseen_data(genuine_unseen_folder, forged_unseen_folder)
+    print("Unseen data samples:", X_unseen.shape)
 
-# ========== LOAD THE TRAINED AdaBoost MODEL ==========
-adaboost_model = joblib.load("adaboost_model.pkl")
-print("AdaBoost model loaded.")
+    # Evaluate models on unseen data
+    models_info = [
+        ("adaboost_model.pkl", "AdaBoost"),
+        ("random_forest_model.pkl", "Random Forest"),
+        ("knn_model.pkl", "KNN"),
+        ("svm_model.pkl", "SVM"),
+        ("writer_independent_logreg_model.pkl", "LogReg")
+    ]
 
-# ========== EVALUATE THE AdaBoost MODEL ON UNSEEN DATA ==========
-adaboost_predictions = adaboost_model.predict(X_unseen)
-adaboost_accuracy = accuracy_score(y_unseen, adaboost_predictions)
-adaboost_report = classification_report(y_unseen, adaboost_predictions, output_dict=True)
-adaboost_precision = adaboost_report['1']['precision']
-adaboost_recall = adaboost_report['1']['recall']
-adaboost_f1 = adaboost_report['1']['f1-score']
+    results = []
+    for model_file, model_name in models_info:
+        metrics = evaluate_model(model_file, model_name, X_unseen, y_unseen)
+        results.append(metrics)
 
-# ========== LOAD THE TRAINED RandomForest MODEL ==========
-randomForest_model = joblib.load("random_forest_model.pkl")
-print("Random Forest model loaded.")
+    headers = ["Model", "File Size (KB)", "Inference Time (s)", "Memory Overhead (MiB)",
+               "Accuracy", "Precision", "Recall", "F1-Score"]
+    print("\nModel Performance Comparison:")
+    print(tabulate(results, headers=headers, tablefmt="pretty"))
 
-# ========== EVALUATE THE RandomForest MODEL ON UNSEEN DATA ==========
-randomForest_predictions = randomForest_model.predict(X_unseen)
-randomForest_accuracy = accuracy_score(y_unseen, randomForest_predictions)
-randomForest_report = classification_report(y_unseen, randomForest_predictions, output_dict=True)
-randomForest_precision = randomForest_report['1']['precision']
-randomForest_recall = randomForest_report['1']['recall']
-randomForest_f1 = randomForest_report['1']['f1-score']
-
-# ========== LOAD THE TRAINED KNN MODEL ==========
-KNN_model = joblib.load("knn_model.pkl")
-print("KNN model loaded.")
-
-# ========== EVALUATE THE KNN MODEL ON UNSEEN DATA ==========
-KNN_predictions = KNN_model.predict(X_unseen)
-KNN_accuracy = accuracy_score(y_unseen, KNN_predictions)
-KNN_report = classification_report(y_unseen, KNN_predictions, output_dict=True)
-KNN_precision = KNN_report['1']['precision']
-KNN_recall = KNN_report['1']['recall']
-KNN_f1 = KNN_report['1']['f1-score']
-
-# ========== LOAD THE TRAINED SVM MODEL ==========
-svm_model = joblib.load("svm_model.pkl")
-print("SVM model loaded.")
-
-# ========== EVALUATE THE SVM MODEL ON UNSEEN DATA ==========
-svm_predictions = svm_model.predict(X_unseen)
-svm_accuracy = accuracy_score(y_unseen, svm_predictions)
-svm_report = classification_report(y_unseen, svm_predictions, output_dict=True)
-svm_precision = svm_report['1']['precision']
-svm_recall = svm_report['1']['recall']
-svm_f1 = svm_report['1']['f1-score']
-
-# ========== LOAD THE TRAINED LogReg MODEL ==========
-LogReg_model = joblib.load("writer_independent_logreg_model.pkl")
-print("LogReg model loaded.")
-
-# ========== EVALUATE THE LogReg MODEL ON UNSEEN DATA ==========
-LogReg_predictions = LogReg_model.predict(X_unseen)
-LogReg_accuracy = accuracy_score(y_unseen, LogReg_predictions)
-LogReg_report = classification_report(y_unseen, LogReg_predictions, output_dict=True)
-LogReg_precision = LogReg_report['1']['precision']
-LogReg_recall = LogReg_report['1']['recall']
-LogReg_f1 = LogReg_report['1']['f1-score']
-
-# Now store the results in a list for tabulation
-model_comparison = [
-    ["AdaBoost", round(adaboost_accuracy, 6), round(adaboost_precision, 6), round(adaboost_recall, 6), round(adaboost_f1, 6)],
-    ["Random Forest", round(randomForest_accuracy, 6), round(randomForest_precision, 6), round(randomForest_recall, 6), round(randomForest_f1, 6)],
-    ["KNN", round(KNN_accuracy, 6), round(KNN_precision, 6), round(KNN_recall, 6), round(KNN_f1, 6)],
-    ["SVM", round(svm_accuracy, 6), round(svm_precision, 6), round(svm_recall, 6), round(svm_f1, 6)],
-    ["LogReg", round(LogReg_accuracy, 6), round(LogReg_precision, 6), round(LogReg_recall, 6), round(LogReg_f1, 6)]
-]
-
-# Print the table
-headers = ["Model", "Accuracy", "Precision", "Recall", "F1-Score"]
-print("\nModel Performance Comparison:")
-print(tabulate(model_comparison, headers=headers, tablefmt="pretty"))
