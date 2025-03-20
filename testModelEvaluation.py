@@ -7,8 +7,10 @@ import joblib
 from tabulate import tabulate
 import time
 from memory_profiler import memory_usage
+from newensemble import ensemble_classify_signature  # Importing the ensemble classification function
 
 # ========== PARAMETERS ==========
+
 IMG_SIZE = (150, 150)
 orientations = 9
 pixels_per_cell = (8, 8)
@@ -89,7 +91,52 @@ def evaluate_model(model_file, model_name, X_data, y_true):
             round(memory_overhead, 4), round(accuracy, 6), round(precision, 6),
             round(recall, 6), round(f1, 6)]
 
+def evaluate_ensemble(ensemble_model_paths, ensemble_models, X_data, y_true):
+    """Evaluate the ensemble model performance, including file size, inference time, memory overhead, and performance metrics."""
+    
+    # ======== FILE SIZE ========
+    # Calculate the file size for the ensemble model (sum of the individual model sizes)
+    ensemble_model_size = sum([os.path.getsize(model_path) for model_path in ensemble_model_paths]) / 1024  # in KB
+    ensemble_model_size_rounded = round(ensemble_model_size, 2)
+    
+    # ======== INFERENCE TIME ========
+    # Measure the inference time for all models in the ensemble
+    start_time = time.time()
+    ensemble_predictions = []
+    for model in ensemble_models:
+        predictions = model.predict(X_data)
+        ensemble_predictions.append(predictions)
+    inference_time = time.time() - start_time
+    inference_time_rounded = round(inference_time, 4)
+    
+    # ======== MEMORY OVERHEAD ========
+    # Measure memory overhead during prediction using memory_usage for all ensemble models
+    mem_usage_list = []
+    for model in ensemble_models:
+        mem_usage = memory_usage((model.predict, (X_data,)), interval=0.01)
+        mem_usage_list.append(max(mem_usage) - min(mem_usage))
+    ensemble_memory_overhead = sum(mem_usage_list)  # Sum the memory overheads of all models in MiB
+    ensemble_memory_overhead_rounded = round(ensemble_memory_overhead, 4)
+    
+    # ======== COMBINED METRICS ========
+    # Average the ensemble predictions
+    ensemble_predictions = np.mean(ensemble_predictions, axis=0)
+    ensemble_predictions = np.where(ensemble_predictions >= 0.5, 1, 0)  # Binary classification
+    
+    accuracy = accuracy_score(y_true, ensemble_predictions)
+    report = classification_report(y_true, ensemble_predictions, output_dict=True)
+    precision = report['1']['precision']
+    recall = report['1']['recall']
+    f1 = report['1']['f1-score']
+    
+    return [
+        "Ensemble", round(ensemble_model_size_rounded,6), round(inference_time_rounded,6), 
+        round(ensemble_memory_overhead_rounded,6), round(accuracy, 6), round(precision, 6),
+        round(recall, 6), round(f1, 6)
+    ]
+
 # ========== PATHS FOR UNSEEN DATA ==========
+
 genuine_unseen_folder = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org"   # Update this path
 forged_unseen_folder  = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg"    # Update this path
 
@@ -98,7 +145,7 @@ if __name__ == '__main__':
     X_unseen, y_unseen = load_unseen_data(genuine_unseen_folder, forged_unseen_folder)
     print("Unseen data samples:", X_unseen.shape)
 
-    # Evaluate models on unseen data
+    # Load the individual models
     models_info = [
         ("adaboost_model.pkl", "AdaBoost"),
         ("random_forest_model.pkl", "Random Forest"),
@@ -106,14 +153,25 @@ if __name__ == '__main__':
         ("svm_model.pkl", "SVM"),
         ("writer_independent_logreg_model.pkl", "LogReg")
     ]
+    
+    ensemble_model_paths = [
+    "knn_model.pkl", "random_forest_model.pkl", "svm_model.pkl", 
+    "writer_independent_logreg_model.pkl", "adaboost_model.pkl"
+    ]
+
+    ensemble_models = [joblib.load(model_path) for model_path in ensemble_model_paths]
+
+    # Evaluate ensemble model
+    ensemble_metrics = evaluate_ensemble(ensemble_model_paths, ensemble_models, X_unseen, y_unseen)
 
     results = []
     for model_file, model_name in models_info:
         metrics = evaluate_model(model_file, model_name, X_unseen, y_unseen)
         results.append(metrics)
+    results.append(ensemble_metrics)
 
-    headers = ["Model", "File Size (KB)", "Inference Time (s)", "Memory Overhead (MiB)",
-               "Accuracy", "Precision", "Recall", "F1-Score"]
+    
+    # Display results in a table
+    headers = ["Model","File Size (KB)","Inference Time (s)", "Memory Overhead (MiB)", "Accuracy", "Precision", "Recall", "F1-Score"]
     print("\nModel Performance Comparison:")
     print(tabulate(results, headers=headers, tablefmt="pretty"))
-
