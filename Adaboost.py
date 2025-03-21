@@ -8,15 +8,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 
 import joblib
-# ========== PARAMETERS ==========
+# HOG Parameters
 IMG_SIZE = (150, 150)
 orientations = 9
 pixels_per_cell = (8, 8)
 cells_per_block = (2, 2)
 block_norm = 'L2-Hys'
 
+# Function to load images and extract HOG features
 def load_images_and_extract_features(folder, label):
-    """Load images from `folder` and extract HOG features. Return feature matrix and labels."""
     features = []
     labels = []
     for filename in os.listdir(folder):
@@ -39,18 +39,17 @@ def load_images_and_extract_features(folder, label):
             labels.append(label)
     return np.array(features), np.array(labels)
 
-# ========== PATHS ==========
+# Dataset path for training the model
 genuine_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\full_org"  # Update path
 forged_path  = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\full_forg" # Update path
 
-# ========== LOAD DATA & EXTRACT FEATURES ==========
+# Label 1 for genuine signatures, Label 0 for forged signatures
 X_genuine, y_genuine = load_images_and_extract_features(genuine_path, label=1)
 X_forged,  y_forged  = load_images_and_extract_features(forged_path, label=0)
 
 print("Total Genuine Signatures:", len(X_genuine))
 print("Total Forged Signatures:", len(X_forged))
 
-# Combine
 X = np.concatenate([X_genuine, X_forged])
 y = np.concatenate([y_genuine, y_forged])
 
@@ -97,7 +96,6 @@ print("\nTest Set Accuracy: {:.2f}%".format(test_accuracy * 100))
 print("\nTest Classification Report:")
 print(test_report)
 print("Test F1 Score: {:.3f}".format(test_f1))
-
 
 # Save the trained AdaBoost model
 joblib.dump(ada_model, "adaboost_model.pkl")

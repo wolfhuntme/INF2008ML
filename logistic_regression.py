@@ -10,24 +10,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
 import joblib
 
-# ======== PARAMETERS ========
+# HOG Parameters
 IMG_SIZE = (150, 150)
 orientations = 9
 pixels_per_cell = (8, 8)
 cells_per_block = (2, 2)
 block_norm = 'L2-Hys'
 
-###############################################################################
-# 1. LOAD IMAGES AND EXTRACT HOG FEATURES
-###############################################################################
+# Function to extract HOG features from an image
 def load_images_and_extract_features(folder, label):
-    """
-    Load all images from the given folder,
-    convert to grayscale, resize, and extract HOG features.
-    Returns:
-      - features: list of HOG feature vectors
-      - labels: list of labels (1 for genuine, 0 for forged)
-    """
     features = []
     labels = []
     for filename in os.listdir(folder):
@@ -46,12 +37,9 @@ def load_images_and_extract_features(folder, label):
             labels.append(label)
     return np.array(features), np.array(labels)
 
-###############################################################################
-# 2. LOAD GENUINE & FORGED SIGNATURES FROM MULTIPLE WRITERS
-###############################################################################
-# Update these paths to point to your datasets
-genuine_folder = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_org"
-forged_folder  = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\full_forg"
+# Dataset path for training the model
+genuine_folder = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\full_org"
+forged_folder  = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\full_forg"
 
 X_genuine, _ = load_images_and_extract_features(genuine_folder, label=1)
 X_forged,  _ = load_images_and_extract_features(forged_folder, label=0)
@@ -66,9 +54,7 @@ y_all = np.concatenate([np.ones(len(X_genuine), dtype=int), np.zeros(len(X_forge
 print("Combined feature matrix shape:", X_all.shape)
 print("Combined labels shape:", y_all.shape)
 
-###############################################################################
-# 3. SPLIT DATA INTO TRAIN, DEV, TEST (Writer-Independent)
-###############################################################################
+# Split data into training, testing and developement set
 X_temp, X_test, y_temp, y_test = train_test_split(X_all, y_all, test_size=0.20, random_state=42)
 X_train, X_dev, y_train, y_dev = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)
 
@@ -76,9 +62,7 @@ print("Training set size:", X_train.shape[0])
 print("Development set size:", X_dev.shape[0])
 print("Test set size:", X_test.shape[0])
 
-###############################################################################
-# 4. TRAIN LOGISTIC REGRESSION CLASSIFIER
-###############################################################################
+# Train the Logistic Regression classifier
 model = LogisticRegression(max_iter=1000, random_state=42)
 model.fit(X_train, y_train)
 
@@ -96,20 +80,12 @@ print("Test Set Accuracy (Logistic Regression): {:.2f}%".format(test_accuracy * 
 print("\nTest Classification Report:")
 print(classification_report(y_test, y_test_pred))
 
-###############################################################################
-# 5. SAVE THE TRAINED MODEL FOR PERSISTENCE
-###############################################################################
+# Save the model
 joblib.dump(model, "writer_independent_logreg_model.pkl")
 print("Logistic Regression model saved as writer_independent_logreg_model.pkl")
 
-###############################################################################
-# 6. CLASSIFY A SINGLE SIGNATURE IMAGE (OPTIONAL)
-###############################################################################
+# Function to classify a single signature image
 def classify_single_signature(image_path, model, threshold=0.5):
-    """
-    Classify a single signature image as Genuine or Forged.
-    This is writer-independent so the model directly predicts based on its HOG features.
-    """
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         print(f"Error: Unable to load image {image_path}")
@@ -128,6 +104,6 @@ def classify_single_signature(image_path, model, threshold=0.5):
     print(f"Classification: {classification}")
     return classification, pred_prob
 
-# Example usage (update the path accordingly)
-test_image_path = r"C:\Users\xavie\Desktop\School\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_41_1.png"
+# Test the model on a single signature image
+test_image_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_41_1.png"
 classify_single_signature(test_image_path, model, threshold=0.5)

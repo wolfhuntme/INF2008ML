@@ -7,18 +7,16 @@ import joblib
 from tabulate import tabulate
 import time
 from memory_profiler import memory_usage
-from newensemble import ensemble_classify_signature  # Importing the ensemble classification function
 
-# ========== PARAMETERS ==========
-
+# HOG parameters
 IMG_SIZE = (150, 150)
 orientations = 9
 pixels_per_cell = (8, 8)
 cells_per_block = (2, 2)
 block_norm = 'L2-Hys'
 
+# Function to preprocess image using HOG parameters
 def preprocess_image(image_path):
-    """Load an image, convert to grayscale, resize, and extract HOG features."""
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise ValueError(f"Error loading image: {image_path}")
@@ -32,8 +30,8 @@ def preprocess_image(image_path):
     )
     return features
 
+# Function to load unseen data
 def load_unseen_data(genuine_folder, forged_folder):
-    """Load unseen images from genuine and forged folders, extract features, and assign labels."""
     X_unseen = []
     y_unseen = []
     
@@ -61,8 +59,8 @@ def load_unseen_data(genuine_folder, forged_folder):
     
     return np.array(X_unseen), np.array(y_unseen)
 
+# Function to evaluate the machine learning model (file size, inference time, memory overhead, performance metrics [F1, Precision, Recall, Accuracy])
 def evaluate_model(model_file, model_name, X_data, y_true):
-    """Load a model, compute file size, inference time, memory overhead, and performance metrics."""
     # File size in KB
     file_size = os.path.getsize(model_file) / 1024  # in KB
     
@@ -75,8 +73,7 @@ def evaluate_model(model_file, model_name, X_data, y_true):
     predictions = model.predict(X_data)
     inference_time = time.time() - start_time
 
-    # Measure memory overhead during prediction using memory_usage.
-    # This runs the prediction function separately.
+    # Measure memory overhead
     mem_usage = memory_usage((model.predict, (X_data,)), interval=0.01)
     memory_overhead = max(mem_usage) - min(mem_usage)
     
@@ -91,15 +88,12 @@ def evaluate_model(model_file, model_name, X_data, y_true):
             round(memory_overhead, 4), round(accuracy, 6), round(precision, 6),
             round(recall, 6), round(f1, 6)]
 
+# Function to evaluate the ensemble model
 def evaluate_ensemble(ensemble_model_paths, ensemble_models, X_data, y_true):
-    """Evaluate the ensemble model performance, including file size, inference time, memory overhead, and performance metrics."""
-    
-    # ======== FILE SIZE ========
     # Calculate the file size for the ensemble model (sum of the individual model sizes)
     ensemble_model_size = sum([os.path.getsize(model_path) for model_path in ensemble_model_paths]) / 1024  # in KB
     ensemble_model_size_rounded = round(ensemble_model_size, 2)
     
-    # ======== INFERENCE TIME ========
     # Measure the inference time for all models in the ensemble
     start_time = time.time()
     ensemble_predictions = []
@@ -109,7 +103,6 @@ def evaluate_ensemble(ensemble_model_paths, ensemble_models, X_data, y_true):
     inference_time = time.time() - start_time
     inference_time_rounded = round(inference_time, 4)
     
-    # ======== MEMORY OVERHEAD ========
     # Measure memory overhead during prediction using memory_usage for all ensemble models
     mem_usage_list = []
     for model in ensemble_models:
@@ -118,7 +111,6 @@ def evaluate_ensemble(ensemble_model_paths, ensemble_models, X_data, y_true):
     ensemble_memory_overhead = sum(mem_usage_list)  # Sum the memory overheads of all models in MiB
     ensemble_memory_overhead_rounded = round(ensemble_memory_overhead, 4)
     
-    # ======== COMBINED METRICS ========
     # Average the ensemble predictions
     ensemble_predictions = np.mean(ensemble_predictions, axis=0)
     ensemble_predictions = np.where(ensemble_predictions >= 0.5, 1, 0)  # Binary classification
@@ -135,8 +127,7 @@ def evaluate_ensemble(ensemble_model_paths, ensemble_models, X_data, y_true):
         round(recall, 6), round(f1, 6)
     ]
 
-# ========== PATHS FOR UNSEEN DATA ==========
-
+# Path to the unseen data folders
 genuine_unseen_folder = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org"   # Update this path
 forged_unseen_folder  = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_forg"    # Update this path
 

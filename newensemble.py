@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from skimage.feature import hog
 import joblib
 
-# ======== PARAMETERS ========
+# HOG Parameters
 IMG_SIZE = (150, 150)
 orientations = 9
 pixels_per_cell = (8, 8)
@@ -13,13 +13,9 @@ cells_per_block = (2, 2)
 block_norm = 'L2-Hys'
 THRESHOLD = 0.5  # if ensemble genuine probability is >= 0.5, classify as "Not Fraud" (genuine)
 
-# ======== FUNCTION: Extract HOG Features ============
+# Function to extract HOG features from an image
 def extract_hog_features(image_path):
-    """
-    Loads an image, converts it to grayscale, resizes to IMG_SIZE, 
-    and extracts HOG features.
-    Returns the feature vector reshaped to (1, -1).
-    """
+
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise ValueError(f"Error: Unable to load image at {image_path}")
@@ -31,20 +27,8 @@ def extract_hog_features(image_path):
                    block_norm=block_norm)
     return features.reshape(1, -1)
 
-# ======== FUNCTION: Ensemble Classification ============
+# Function to classify a signature using an ensemble of models
 def ensemble_classify_signature(image_path, models, threshold=THRESHOLD):
-    """
-    Classify a single signature image using an ensemble of models.
-    Each model returns the probability for the genuine class.
-    The ensemble probability is the average of these probabilities.
-    If the ensemble probability is >= threshold, classify as "Not Fraud (Genuine)",
-    otherwise as "Fraud (Forged)".
-
-    Returns:
-      - classification (str)
-      - ensemble probability (float)
-      - individual probabilities (list of floats)
-    """
     features = extract_hog_features(image_path)
     probs = []
     for model in models:
@@ -54,16 +38,13 @@ def ensemble_classify_signature(image_path, models, threshold=THRESHOLD):
     classification = "Not Fraud (Genuine)" if ensemble_prob >= threshold else "Fraud (Forged)"
     return classification, ensemble_prob, probs
 
-# ======== MAIN SCRIPT ============
 def main():
     # Load the pre-trained models (update the paths as needed)
-    knn_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\knn_model.pkl"
-    rf_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\random_forest_model.pkl"
-    svm_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\svm_model.pkl"
-    logreg_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\logreg_model.pkl"
-    adaboost_model_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\adaboost_model.pkl"
-    
-
+    knn_model_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\knn_model.pkl"
+    rf_model_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\random_forest_model.pkl"
+    svm_model_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\svm_model.pkl"
+    logreg_model_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\writer_independent_logreg_model.pkl"
+    adaboost_model_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\adaboost_model.pkl"
     
     knn = joblib.load(knn_model_path)
     rf = joblib.load(rf_model_path)
@@ -74,7 +55,7 @@ def main():
     models = [knn, rf, svm, logreg, adaboost]
     
     # Update the test image path to the signature you wish to classify
-    test_image_path = r"C:\Users\khooa\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_47_22.png"
+    test_image_path = r"C:\Users\Vyse\Documents\GitHub\INF2008ML\signatures_cedar\unseen_data_for_testing\unseen_org\original_50_12.png"
     
     classification, ensemble_prob, individual_probs = ensemble_classify_signature(test_image_path, models, threshold=THRESHOLD)
     print("Ensemble Classification:", classification)

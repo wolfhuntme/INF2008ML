@@ -8,12 +8,13 @@ from sklearn.metrics import accuracy_score, classification_report
 import matplotlib.pyplot as plt
 import joblib  # <-- For model persistence
 
-# ======== PARAMETERS ========
+# HOG Parameters
 orientations = 9
 pixels_per_cell = (8, 8)
 cells_per_block = (2, 2)
 IMG_SIZE = (150, 150)
 
+# Function to extract HOG features from an image
 def load_images_and_extract_features(folder, label):
     features = []
     labels = []
@@ -48,7 +49,7 @@ y = np.concatenate([y_genuine, y_forged])
 print("Combined feature matrix shape:", X.shape)
 print("Combined labels shape:", y.shape)
 
-# ======== Three-Way Split ========
+# Dataset path for training the model
 X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 X_train, X_dev, y_train, y_dev = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)
 
@@ -56,7 +57,7 @@ print("Training set size:", X_train.shape[0])
 print("Development set size:", X_dev.shape[0])
 print("Test set size:", X_test.shape[0])
 
-# ======== Train the SVM classifier ========
+# Train the model
 svm = SVC(kernel="linear", probability=True, random_state=42)
 svm.fit(X_train, y_train)
 
@@ -74,10 +75,10 @@ print("Test Set Accuracy: {:.2f}%".format(test_accuracy * 100))
 print("\nTest Classification Report:")
 print(classification_report(y_test, y_test_pred))
 
-# ======== SAVE MODEL ========
 joblib.dump(svm, "svm_model.pkl")
 print("SVM model saved as svm_model.pkl")
 
+# Function to compare HOG features of two images
 def compare_hog(genuine_image_path, forged_image_path):
     genuine_img = cv2.imread(genuine_image_path, cv2.IMREAD_GRAYSCALE)
     forged_img  = cv2.imread(forged_image_path, cv2.IMREAD_GRAYSCALE)
